@@ -1,0 +1,9 @@
+# Allow all user agents
+User-agent: *
+Disallow:
+
+# Link to sitemap
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Optional crawl delay (in seconds) to avoid heavy server load
+Crawl-delay: 1

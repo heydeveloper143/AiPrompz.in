@@ -1,103 +1,180 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import Navbar from "../components/Navbar";
+import Meta from "../components/Meta";
+import Link from "next/link";
 import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+type Prompt = {
+  id: string;
+  title: string;
+  slug: string;
+  imageUrl: string;
+  category: string;
+  shortDescription?: string;
+  createdAt?: Timestamp | null;
+};
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function Home() {
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      const data: Prompt[] = snap.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          title: d.title,
+          slug: d.slug,
+          imageUrl: d.imageUrl,
+          category: d.category,
+          shortDescription: d.shortDescription,
+          createdAt: d.createdAt || null,
+        };
+      });
+      setPrompts(data);
+      setLoading(false);
+    };
+    fetchPrompts();
+  }, []);
+
+  const trendingPosts = prompts.slice(0, 5);
+
+  return (
+    <>
+      <Meta
+        title="AI Gemini Trending Prompts Gallery – Trending AI Prompts 2025"
+        description="Discover trending AI prompts (selfie, festival, creative). Copy prompts, browse categories and get inspired."
+        url={process.env.NEXT_PUBLIC_SITE_URL}
+      />
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-10">
+        {/* Hero Section */}
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Trending AI Prompts
+          </h1>
+          <p className="mt-4 text-gray-600 text-lg max-w-2xl mx-auto">
+            Explore trending Gemini AI prompts crafted for creativity, fun, and inspiration.
+          </p>
+        </header>
+
+        {/* Categories */}
+        <div className="mb-12 flex flex-wrap justify-center gap-3">
+          {["Trending", "Festival", "Selfie", "Latest"].map((c) => (
+            <Link
+              key={c}
+              href={`/categories/${c}`}
+              className="px-5 py-2 bg-blue-50 text-blue-700 font-medium rounded-full border border-blue-100 hover:bg-blue-100 transition"
+            >
+              {c}
+            </Link>
+          ))}
         </div>
+
+        {/* Blog Layout */}
+        {loading ? (
+          <div className="flex flex-col lg:flex-row gap-10">
+            <div className="flex-1 space-y-8">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="w-full h-80 bg-gray-200 animate-pulse rounded-xl" />
+              ))}
+            </div>
+            <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
+              <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
+              <div className="space-y-4">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="flex items-center gap-3 group">
+                    <div className="w-20 h-20 bg-gray-200 rounded" />
+                    <div>
+                      <h4 className="text-gray-900 font-semibold line-clamp-2">Loading...</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          </div>
+        ) : prompts.length === 0 ? (
+          <p className="text-center text-gray-500">
+            No prompts yet. Use the admin dashboard to add prompts.
+          </p>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-10">
+            {/* Main Posts */}
+            <div className="flex-1 space-y-12">
+              {prompts.map((p) => (
+                <div key={p.id} className="group">
+                  <h2 className="text-2xl font-bold text-black mb-2">{p.title}</h2>
+
+                  {p.imageUrl && (
+                    <div className="relative w-full lg:w-[calc(100%+30px)] h-80 overflow-hidden mb-4 rounded-md">
+                      <Image
+                        src={p.imageUrl}
+                        alt={p.title}
+                        fill
+                        style={{ objectFit: "contain" }}
+                        className="transition-transform duration-500 group-hover:scale-105 rounded-md"
+                      />
+                    </div>
+                  )}
+
+                  <p className="text-gray-700 mb-2">
+                    If you like this prompt and want to try it out, just click the link below to see the full details. This trending prompt is super fun and you’ll definitely enjoy using it in your projects!
+                  </p>
+                  <p className="text-gray-700 mb-4">
+                    You can easily copy it and explore how it works with this image. Check it out and get creative!
+                  </p>
+
+                  <Link href={`/prompt/${p.slug}`}>
+                    <div className="cursor-pointer text-gray-900 font-medium bg-yellow-100 px-3 py-2 inline-block rounded hover:bg-yellow-200 transition">
+                      Go to the full details and use the prompt
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            {/* Sidebar */}
+            <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
+              <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
+              <div className="space-y-4">
+                {trendingPosts.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/prompt/${p.slug}`}
+                    className="flex items-center gap-3 group"
+                  >
+                    <div className="w-20 h-20 bg-gray-200 overflow-hidden flex-shrink-0 rounded relative">
+                      <Image
+                        src={p.imageUrl}
+                        alt={p.title}
+                        fill
+                        style={{ objectFit: "cover" }}
+                        className="transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-gray-900 group-hover:text-blue-600 transition-colors font-semibold line-clamp-2">
+                        {p.title}
+                      </h4>
+                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full mt-1 inline-block">
+                        {p.category}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </aside>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    </>
   );
 }
