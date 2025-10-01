@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-const ADMIN_UID = "qLmB6KeUHaVgwI5fs79pb0pSS7z2"; // 🔑 Replace with your UID from console
+const ADMIN_UID = "qLmB6KeUHaVgwI5fs79pb0pSS7z2"; // 🔑 Replace with your UID
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [promptText, setPromptText] = useState("");
   const [blogContent, setBlogContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -37,15 +38,20 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = async () => {
-    const result = await signInWithPopup(auth, provider);
-    if (result.user.uid !== ADMIN_UID) {
-      alert("You are not authorized as admin.");
-      await signOut(auth);
-      return;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result.user.uid !== ADMIN_UID) {
+        alert("You are not authorized as admin.");
+        await signOut(auth);
+        return;
+      }
+      setUser(result.user);
+      setIsAdmin(true);
+      console.log("Admin UID:", result.user.uid);
+    } catch (err) {
+      console.error("Login failed:", err);
+      alert("Login failed, please try again.");
     }
-    setUser(result.user);
-    setIsAdmin(true);
-    console.log("Admin UID:", result.user.uid);
   };
 
   const handleLogout = async () => {
@@ -55,18 +61,20 @@ export default function AdminPage() {
   };
 
   const handleUpload = async () => {
-    if (!imageUrl) return alert("Please provide an image URL (Imgur, Cloudinary, etc.)");
-    if (!title || !slug) return alert("Title and slug required");
+    if (!title.trim() || !slug.trim()) return alert("Title and slug required");
+    if (!imageUrl.trim()) return alert("Please provide an image URL");
+
+    setUploading(true);
 
     try {
       await addDoc(collection(db, "prompts"), {
-        title,
-        slug,
-        shortDescription,
-        category,
-        promptText,
-        blogContent,
-        imageUrl,
+        title: title.trim(),
+        slug: slug.trim(),
+        shortDescription: shortDescription.trim(),
+        category: category.trim(),
+        promptText: promptText.trim(),
+        blogContent: blogContent.trim(),
+        imageUrl: imageUrl.trim(),
         createdAt: serverTimestamp(),
       });
       alert("Prompt uploaded!");
@@ -77,8 +85,11 @@ export default function AdminPage() {
       setPromptText("");
       setBlogContent("");
       setImageUrl("");
-    } catch (err: any) {
-      alert("Upload failed: " + (err.message || err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert("Upload failed: " + message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -94,8 +105,7 @@ export default function AdminPage() {
               Login with Google
             </button>
             <p className="mt-3 text-gray-600">
-              Only admin can upload prompts. After login, copy your UID from
-              console and put it into Firestore rules.
+              Only admin can upload prompts.
             </p>
           </div>
         ) : isAdmin ? (
@@ -103,7 +113,7 @@ export default function AdminPage() {
             <div className="flex justify-between items-center mb-4">
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
               <div>
-                <span className="mr-3">{user.displayName}</span>
+                <span className="mr-3">{user.displayName ?? "Admin"}</span>
                 <button
                   onClick={handleLogout}
                   className="px-3 py-1 border rounded"
@@ -165,9 +175,12 @@ export default function AdminPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleUpload}
-                  className="px-4 py-2 bg-green-600 text-white rounded"
+                  disabled={uploading}
+                  className={`px-4 py-2 rounded text-white ${
+                    uploading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600"
+                  }`}
                 >
-                  Upload Prompt
+                  {uploading ? "Uploading..." : "Upload Prompt"}
                 </button>
               </div>
             </div>
@@ -178,4 +191,4 @@ export default function AdminPage() {
       </div>
     </div>
   );
-}  
+}
