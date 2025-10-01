@@ -23,7 +23,6 @@ export default function AdminPage() {
   const [blogContent, setBlogContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
-  // Listen for auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u && u.uid === ADMIN_UID) {
@@ -38,20 +37,15 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      if (result.user.uid !== ADMIN_UID) {
-        alert("You are not authorized as admin.");
-        await signOut(auth);
-        return;
-      }
-      setUser(result.user);
-      setIsAdmin(true);
-      console.log("Admin UID:", result.user.uid);
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Login failed. Try again.");
+    const result = await signInWithPopup(auth, provider);
+    if (result.user.uid !== ADMIN_UID) {
+      alert("You are not authorized as admin.");
+      await signOut(auth);
+      return;
     }
+    setUser(result.user);
+    setIsAdmin(true);
+    console.log("Admin UID:", result.user.uid);
   };
 
   const handleLogout = async () => {
@@ -75,10 +69,7 @@ export default function AdminPage() {
         imageUrl,
         createdAt: serverTimestamp(),
       });
-
       alert("Prompt uploaded!");
-
-      // Reset fields
       setTitle("");
       setSlug("");
       setShortDescription("");
@@ -86,12 +77,8 @@ export default function AdminPage() {
       setPromptText("");
       setBlogContent("");
       setImageUrl("");
-    } catch (err) {
-      if (err instanceof Error) {
-        alert("Upload failed: " + err.message);
-      } else {
-        alert("Upload failed: Unknown error");
-      }
+    } catch (err: any) {
+      alert("Upload failed: " + (err.message || err));
     }
   };
 
@@ -191,4 +178,4 @@ export default function AdminPage() {
       </div>
     </div>
   );
-}
+}  

@@ -1,47 +1,27 @@
+  
+
+
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Navbar from "../components/Navbar";
 import Meta from "../components/Meta";
 import Link from "next/link";
-import Image from "next/image";
-
-type Prompt = {
-  id: string;
-  title: string;
-  slug: string;
-  imageUrl: string;
-  category: string;
-  shortDescription?: string;
-  createdAt?: Timestamp | null;
-};
 
 export default function Home() {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [prompts, setPrompts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPrompts = async () => {
+    const fetch = async () => {
       const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
-      const data: Prompt[] = snap.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          title: d.title,
-          slug: d.slug,
-          imageUrl: d.imageUrl,
-          category: d.category,
-          shortDescription: d.shortDescription,
-          createdAt: d.createdAt || null,
-        };
-      });
-      setPrompts(data);
+      setPrompts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     };
-    fetchPrompts();
+    fetch();
   }, []);
 
   const trendingPosts = prompts.slice(0, 5);
@@ -79,7 +59,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Blog Layout */}
+        {/* Blog Layout: main posts + sidebar */}
         {loading ? (
           <div className="flex flex-col lg:flex-row gap-10">
             <div className="flex-1 space-y-8">
@@ -102,77 +82,74 @@ export default function Home() {
             </aside>
           </div>
         ) : prompts.length === 0 ? (
-          <p className="text-center text-gray-500">
-            No prompts yet. Use the admin dashboard to add prompts.
-          </p>
+          <p className="text-center text-gray-500">No prompts yet. Use the admin dashboard to add prompts.</p>
         ) : (
           <div className="flex flex-col lg:flex-row gap-10">
-            {/* Main Posts */}
-            <div className="flex-1 space-y-12">
-              {prompts.map((p) => (
-                <div key={p.id} className="group">
-                  <h2 className="text-2xl font-bold text-black mb-2">{p.title}</h2>
+{/* Main Posts */}
+{/* Main Posts */}
+<div className="flex-1 space-y-12">
+  {prompts.map((p) => (
+    <div key={p.id} className="group">
+      {/* Title above image */}
+      <h2 className="text-2xl font-bold text-black mb-2">{p.title}</h2>
 
-                  {p.imageUrl && (
-                    <div className="relative w-full lg:w-[calc(100%+30px)] h-80 overflow-hidden mb-4 rounded-md">
-                      <Image
-                        src={p.imageUrl}
-                        alt={p.title}
-                        fill
-                        style={{ objectFit: "contain" }}
-                        className="transition-transform duration-500 group-hover:scale-105 rounded-md"
-                      />
-                    </div>
-                  )}
+      {/* Image: wider on large screens, fixed height, subtle border-radius */}
+      <div className="w-full lg:w-[calc(100%+30px)] h-80 overflow-hidden mb-4 rounded-md">
+        <img
+          src={p.imageUrl}
+          alt={p.title}
+          className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 rounded-md"
+        />
+      </div>
 
-                  <p className="text-gray-700 mb-2">
-                    If you like this prompt and want to try it out, just click the link below to see the full details. This trending prompt is super fun and you’ll definitely enjoy using it in your projects!
-                  </p>
-                  <p className="text-gray-700 mb-4">
-                    You can easily copy it and explore how it works with this image. Check it out and get creative!
-                  </p>
+      {/* Human-style description */}
+      <p className="text-gray-700 mb-2">
+        If you like this prompt and want to try it out, just click the link below to see the full details.  
+        This trending prompt is super fun and you’ll definitely enjoy using it in your projects!
+      </p>
+      <p className="text-gray-700 mb-4">
+        You can easily copy it and explore how it works with this image. Check it out and get creative!
+      </p>
 
-                  <Link href={`/prompt/${p.slug}`}>
-                    <div className="cursor-pointer text-gray-900 font-medium bg-yellow-100 px-3 py-2 inline-block rounded hover:bg-yellow-200 transition">
-                      Go to the full details and use the prompt
-                    </div>
-                  </Link>
-                </div>
-              ))}
-            </div>
+      {/* Call to Action */}
+      <Link href={`/prompt/${p.slug}`}>
+        <div className="cursor-pointer text-gray-900 font-medium bg-yellow-100 px-3 py-2 inline-block rounded hover:bg-yellow-200 transition">
+          Go to the full details and use the prompt
+        </div>
+      </Link>
+    </div>
+  ))}
+</div>
 
-            {/* Sidebar */}
-            <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
-              <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
-              <div className="space-y-4">
-                {trendingPosts.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/prompt/${p.slug}`}
-                    className="flex items-center gap-3 group"
-                  >
-                    <div className="w-20 h-20 bg-gray-200 overflow-hidden flex-shrink-0 rounded relative">
-                      <Image
-                        src={p.imageUrl}
-                        alt={p.title}
-                        fill
-                        style={{ objectFit: "cover" }}
-                        className="transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="text-gray-900 group-hover:text-blue-600 transition-colors font-semibold line-clamp-2">
-                        {p.title}
-                      </h4>
-                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full mt-1 inline-block">
-                        {p.category}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </aside>
+
+
+
+
+  {/* Sidebar */}
+  <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
+    <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
+    <div className="space-y-4">
+      {trendingPosts.map((p) => (
+        <Link key={p.id} href={`/prompt/${p.slug}`} className="flex items-center gap-3 group">
+          <div className="w-20 h-20 bg-gray-200 overflow-hidden flex-shrink-0 rounded">
+            <img
+              src={p.imageUrl}
+              alt={p.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
           </div>
+          <div>
+            <h4 className="text-gray-900 group-hover:text-blue-600 transition-colors font-semibold line-clamp-2">
+              {p.title}
+            </h4>
+            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full mt-1 inline-block">{p.category}</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </aside>
+</div>
+
         )}
       </main>
     </>

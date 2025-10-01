@@ -2,9 +2,8 @@ import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: "export", // enables static export
   images: {
-    unoptimized: true, // required for remote images with static export
+    unoptimized: true, // still fine for remote images
   },
 };
 
