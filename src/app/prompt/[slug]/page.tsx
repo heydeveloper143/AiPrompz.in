@@ -121,6 +121,7 @@ export default function PromptDetail() {
 
             <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">{prompt.title}</h1>
 
+            {/* Main Prompt Image */}
             {prompt.imageUrl && (
               <div className="relative w-full h-96 mb-4">
                 <Image
@@ -132,13 +133,16 @@ export default function PromptDetail() {
               </div>
             )}
 
+            {/* Prompt Text */}
             <pre className="whitespace-pre-wrap text-gray-800 text-sm select-all">{prompt.promptText}</pre>
 
+            {/* Instructions / Details */}
             <div className="prose prose-lg max-w-none">
               <h2 className="font-semibold text-gray-800">Instructions & Details</h2>
               <div>{prompt.blogContent}</div>
             </div>
 
+            {/* Copy Button */}
             <button
               onClick={handleCopy}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
@@ -156,7 +160,7 @@ export default function PromptDetail() {
               data-full-width-responsive="true"
             ></ins>
 
-            {/* Related */}
+            {/* Related Articles */}
             <div className="border-t pt-6">
               <h3 className="text-2xl font-bold mb-6">Related Articles</h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -171,7 +175,8 @@ export default function PromptDetail() {
                         <Image
                           src={p.imageUrl}
                           alt={p.title}
-                          fill
+                          width={400}
+                          height={400}
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       )}
@@ -201,7 +206,8 @@ export default function PromptDetail() {
                       <Image
                         src={p.imageUrl}
                         alt={p.title}
-                        fill
+                        width={80}
+                        height={80}
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     )}

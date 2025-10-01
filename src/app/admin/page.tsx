@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-const ADMIN_UID = "qLmB6KeUHaVgwI5fs79pb0pSS7z2"; // 🔑 Replace with your UID
+const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID!; // ✅ From .env
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -41,13 +41,13 @@ export default function AdminPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       if (result.user.uid !== ADMIN_UID) {
-        alert("You are not authorized as admin.");
+        alert("❌ You are not authorized as admin.");
         await signOut(auth);
         return;
       }
       setUser(result.user);
       setIsAdmin(true);
-      console.log("Admin UID:", result.user.uid);
+      console.log("✅ Logged in as Admin:", result.user.uid);
     } catch (err) {
       console.error("Login failed:", err);
       alert("Login failed, please try again.");
@@ -77,7 +77,7 @@ export default function AdminPage() {
         imageUrl: imageUrl.trim(),
         createdAt: serverTimestamp(),
       });
-      alert("Prompt uploaded!");
+      alert("✅ Prompt uploaded!");
       setTitle("");
       setSlug("");
       setShortDescription("");
@@ -104,9 +104,7 @@ export default function AdminPage() {
             >
               Login with Google
             </button>
-            <p className="mt-3 text-gray-600">
-              Only admin can upload prompts.
-            </p>
+            <p className="mt-3 text-gray-600">Only admin can upload prompts.</p>
           </div>
         ) : isAdmin ? (
           <div>
@@ -160,14 +158,14 @@ export default function AdminPage() {
                 className="w-full p-2 border rounded"
               />
               <textarea
-                placeholder="Blog Content (long form helpful for SEO)"
+                placeholder="Blog Content (SEO friendly long form)"
                 value={blogContent}
                 onChange={(e) => setBlogContent(e.target.value)}
                 className="w-full p-2 border rounded"
               />
               <input
                 type="text"
-                placeholder="Image URL (direct link ending .jpg/.png or Cloudinary/Imgur link)"
+                placeholder="Image URL (.jpg/.png or Cloudinary link)"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 className="w-full p-2 border rounded"
@@ -177,7 +175,9 @@ export default function AdminPage() {
                   onClick={handleUpload}
                   disabled={uploading}
                   className={`px-4 py-2 rounded text-white ${
-                    uploading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600"
+                    uploading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
                   }`}
                 >
                   {uploading ? "Uploading..." : "Upload Prompt"}
@@ -186,7 +186,7 @@ export default function AdminPage() {
             </div>
           </div>
         ) : (
-          <p className="text-center text-red-600">Access Denied. Admin only.</p>
+          <p className="text-center text-red-600">❌ Access Denied. Admin only.</p>
         )}
       </div>
     </div>
