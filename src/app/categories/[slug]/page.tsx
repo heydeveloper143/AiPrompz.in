@@ -1,7 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+// src/app/category/[slug]/page.tsx
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import Navbar from "../../../components/Navbar";
@@ -18,98 +15,77 @@ interface Prompt {
   imageUrl?: string;
 }
 
-export default function CategoryPage() {
-  const { slug } = useParams() as { slug: string };
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [allPrompts, setAllPrompts] = useState<Prompt[]>([]);
-  const [loading, setLoading] = useState(true);
+// ISR: rebuild page every 1 hour
+export const revalidate = 3600; // seconds
 
-  useEffect(() => {
-    if (!slug) return;
-    const fetchData = async () => {
-      const allQ = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
-      const allSnap = await getDocs(allQ);
-      setAllPrompts(allSnap.docs.map(d => ({ id: d.id, ...d.data() } as Prompt)));
+interface CategoryPageProps {
+  params: { slug: string };
+}
 
-      const catQ = query(
-        collection(db, "prompts"),
-        where("category", "==", slug),
-        orderBy("createdAt", "desc")
-      );
-      const catSnap = await getDocs(catQ);
-      setPrompts(catSnap.docs.map(d => ({ id: d.id, ...d.data() } as Prompt)));
-      setLoading(false);
-    };
-    fetchData();
-  }, [slug]);
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const category = params.slug;
 
-  const trendingPosts = allPrompts.slice(0, 5);
+  // Fetch prompts for this category
+  const q = query(
+    collection(db, "prompts"),
+    where("category", "==", category),
+    orderBy("createdAt", "desc")
+  );
+  const snap = await getDocs(q);
+  const prompts: Prompt[] = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Prompt, "id">),
+  }));
 
   return (
     <>
       <Meta
-        title={`${slug} AI Prompts – AI Gemini Gallery`}
-        description={`Explore ${slug} AI prompts to boost your creativity.`}
-        url={`${process.env.NEXT_PUBLIC_SITE_URL}/categories/${slug}`}
+        title={`AI Gemini – ${category} Prompts`}
+        description={`Explore AI prompts in the ${category} category.`}
+        url={`${process.env.NEXT_PUBLIC_SITE_URL}/categories/${category}`}
       />
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-10">
-        <div className="mb-4 text-sm text-gray-600">
-          <Link href="/">Home</Link> &gt; <span className="capitalize">{slug}</span>
-        </div>
 
+      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-10">
         <header className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-extrabold capitalize">{slug} AI Prompts</h1>
-          <p className="mt-2 text-gray-600 text-lg">
-            Explore curated {slug} prompts crafted for Gemini AI.
+          <h1 className="text-4xl md:text-5xl font-extrabold">
+            {category} Prompts
+          </h1>
+          <p className="mt-4 text-gray-600 text-lg max-w-2xl mx-auto">
+            Explore trending AI prompts in the {category} category.
           </p>
         </header>
 
-        {loading ? (
-          <div className="space-y-8">
-            {[1,2,3].map(n => <div key={n} className="h-80 bg-gray-200 animate-pulse rounded-xl shadow-sm" />)}
-          </div>
-        ) : prompts.length === 0 ? (
-          <p className="text-center text-gray-500">No prompts found in {slug} category.</p>
+        {prompts.length === 0 ? (
+          <p className="text-center text-gray-500">No prompts in this category yet.</p>
         ) : (
           <div className="flex flex-col lg:flex-row gap-10">
+            {/* Main Posts */}
             <div className="flex-1 space-y-12">
-              {prompts.map(p => (
+              {prompts.map((p) => (
                 <div key={p.id} className="group">
-                  <h2 className="text-2xl font-bold text-black mb-2 text-left">{p.title}</h2>
-                  <p className="text-gray-700 mb-2 max-w-5xl">{p.shortDescription}</p>
+                  <h2 className="text-2xl font-bold text-black mb-2">{p.title}</h2>
                   {p.imageUrl && (
-                    <div className="w-full h-96 max-w-5xl mx-auto relative rounded-md overflow-hidden">
-                      <Image src={p.imageUrl} alt={p.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105" />
+                    <div className="w-full lg:w-[calc(100%+30px)] h-80 overflow-hidden mb-4 rounded-md relative">
+                      <Image
+                        src={p.imageUrl}
+                        alt={p.title}
+                        fill
+                        className="object-contain transition-transform duration-500 group-hover:scale-105 rounded-md"
+                      />
                     </div>
                   )}
-                  <div className="max-w-5xl mx-auto mt-4">
-                    <Link href={`/prompt/${p.slug}`}>
-                      <div className="cursor-pointer text-gray-900 font-medium bg-yellow-100 px-3 py-2 inline-block rounded hover:bg-yellow-200 transition">
-                        Go to full details
-                      </div>
-                    </Link>
-                  </div>
+                  <p className="text-gray-700 mb-2">
+                    {p.shortDescription || "Explore this AI prompt and get inspired."}
+                  </p>
+                  <Link href={`/prompt/${p.slug}`}>
+                    <div className="cursor-pointer text-gray-900 font-medium bg-yellow-100 px-3 py-2 inline-block rounded hover:bg-yellow-200 transition">
+                      Go to the full details and use the prompt
+                    </div>
+                  </Link>
                 </div>
               ))}
             </div>
-
-            <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
-              <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
-              <div className="space-y-4">
-                {trendingPosts.map(p => (
-                  <Link key={p.id} href={`/prompt/${p.slug}`} className="flex items-center gap-3 group">
-                    <div className="w-20 h-20 bg-gray-200 overflow-hidden flex-shrink-0 rounded relative">
-                      {p.imageUrl && <Image src={p.imageUrl} alt={p.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />}
-                    </div>
-                    <div>
-                      <h4 className="text-gray-900 group-hover:text-blue-600 transition-colors font-semibold line-clamp-2">{p.title}</h4>
-                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full mt-1 inline-block">{p.category}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </aside>
           </div>
         )}
       </main>

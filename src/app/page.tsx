@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+// src/app/page.tsx
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Navbar from "../components/Navbar";
@@ -17,19 +15,17 @@ interface Prompt {
   imageUrl?: string;
 }
 
-export default function Home() {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [loading, setLoading] = useState(true);
+// ISR: rebuild page every 1 hour
+export const revalidate = 3600; // seconds
 
-  useEffect(() => {
-    const fetch = async () => {
-      const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-      setPrompts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Prompt)));
-      setLoading(false);
-    };
-    fetch();
-  }, []);
+export default async function Home() {
+  // Fetch prompts from Firestore
+  const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  const prompts: Prompt[] = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Prompt, "id">),
+  }));
 
   const trendingPosts = prompts.slice(0, 5);
 
@@ -67,28 +63,7 @@ export default function Home() {
         </div>
 
         {/* Blog Layout */}
-        {loading ? (
-          <div className="flex flex-col lg:flex-row gap-10">
-            <div className="flex-1 space-y-8">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="w-full h-80 bg-gray-200 animate-pulse rounded-xl" />
-              ))}
-            </div>
-            <aside className="flex-none lg:w-80 mt-10 lg:mt-0 space-y-6">
-              <h3 className="text-xl font-bold mb-4">Trending Posts</h3>
-              <div className="space-y-4">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="flex items-center gap-3 group">
-                    <div className="w-20 h-20 bg-gray-200 rounded" />
-                    <div>
-                      <h4 className="text-gray-900 font-semibold line-clamp-2">Loading...</h4>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </aside>
-          </div>
-        ) : prompts.length === 0 ? (
+        {prompts.length === 0 ? (
           <p className="text-center text-gray-500">No prompts yet. Use the admin dashboard to add prompts.</p>
         ) : (
           <div className="flex flex-col lg:flex-row gap-10">
